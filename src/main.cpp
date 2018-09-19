@@ -47,16 +47,16 @@ const char msgTemplate[] = "<!DOCTYPE html><html><head><title>%s</title>"
 char id[sizeof(PROGRAM " " VERSION " hhhhhhhh")];
 char msg[sizeof(msgTemplate) + sizeof(id)];
 
-// return the current humidity value in percent
+// Return the current humidity value in percent
 int getHumidityPercent() {
   return map(constrain( analogRead(A0), A0_DRY, A0_WET ), A0_WET, A0_DRY, 0, 100);
 }
 
-// print humidity to serial and set led on if too dry or off if wet enough
+// Print humidity to serial and set led on if too dry or off if wet enough
 void checkHumidity( void ) {
   int humidity = getHumidityPercent();
 
-  Serial.printf("humidity: %d%%\n", humidity);
+  Serial.printf("Humidity: %d%%\n", humidity);
 
   if( humidity < PERCENT_DRY_LED_ON ) {
     ledState = Led::ON;   // Time to give plants some water
@@ -68,13 +68,14 @@ void checkHumidity( void ) {
   led.set(ledState); // Set always, because Serial might mess with it
 }
 
-// standard response for any http request: send current humidity
+// Standard response for any http request: send current humidity
 void respond() {
   int humidity = getHumidityPercent();
   snprintf(msg, sizeof(msg), msgTemplate, id, humidity);
   webServer.send(200, "text/html", msg);
 }
 
+// Start wifi AP with captive dns portal and webserver, serial out ticker and alarm led
 void setup(void) {
   Serial.begin(115200);
 
@@ -94,6 +95,7 @@ void setup(void) {
   led.begin(ledState);
 }
 
+// Keep servers running
 void loop( void ) {
   dnsServer.processNextRequest();
   webServer.handleClient();
