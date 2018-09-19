@@ -1,9 +1,12 @@
 #include <Arduino.h>
 
 #include <ESP8266WiFi.h>
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <Ticker.h>
 
 #define PROGRAM "Moisture"
-#define VERSION "1.0"
+#define VERSION "1.1"
 
 #define A0_WET 875
 #define A0_DRY 445
@@ -31,20 +34,29 @@ typedef class TLed < true > Led;
 Led led(D4);
 Led::t_state ledState = Led::OFF;
 
-void setup(void) {
-  Serial.begin(115200);
-  WiFi.mode(WIFI_OFF);
-  Serial.printf("\nBooted %s %s\n", PROGRAM, VERSION);
-  led.begin(ledState);
+IPAddress apAddr(192, 168, 4, 1); // kind of standard ip for esp APs
+IPAddress apMask(255, 255, 255, 0);
+DNSServer dnsServer;
+ESP8266WebServer webServer(80);
+
+Ticker ticker;
+
+const char msgTemplate[] = "<!DOCTYPE html><html><head><title>%s</title>"
+                           "<meta http-equiv=\"refresh\" content=\"10\"></head>"
+                           "<body><h1>Humidity: %d%%</h1></body></html>";
+char id[sizeof(PROGRAM " " VERSION " hhhhhhhh")];
+char msg[sizeof(msgTemplate) + sizeof(id)];
+
+// return the current humidity value in percent
+int getHumidityPercent() {
+  return map(constrain( analogRead(A0), A0_DRY, A0_WET ), A0_WET, A0_DRY, 0, 100);
 }
 
-void loop( void ) {
-  // Capacitive sensor pin on A0 yields 875 in water and 445 in air
-  // Translate this to a range from 100% (wet) to 0% (dry)
-  int humidity = map(constrain( analogRead(A0), A0_DRY, A0_WET ), A0_WET, A0_DRY, 0, 100);
+// print humidity to serial and set led on if too dry or off if wet enough
+void checkHumidity( void ) {
+  int humidity = getHumidityPercent();
 
-  Serial.print("humidity %: ");
-  Serial.println(humidity);
+  Serial.printf("humidity: %d%%\n", humidity);
 
   if( humidity < PERCENT_DRY_LED_ON ) {
     ledState = Led::ON;   // Time to give plants some water
@@ -53,7 +65,36 @@ void loop( void ) {
     ledState = Led::OFF;  // Soil is moist
   }
 
-  led.set(ledState);
+  led.set(ledState); // Set always, because Serial might mess with it
+}
 
-  delay(1*1000);
+// standard response for any http request: send current humidity
+void respond() {
+  int humidity = getHumidityPercent();
+  snprintf(msg, sizeof(msg), msgTemplate, id, humidity);
+  webServer.send(200, "text/html", msg);
+}
+
+void setup(void) {
+  Serial.begin(115200);
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apAddr, apAddr, apMask);
+  snprintf(id, sizeof(id), "%s %s %06x", PROGRAM, VERSION, ESP.getChipId());
+  WiFi.softAP(id);
+
+  dnsServer.start(53, "*", apAddr);
+
+  webServer.onNotFound(respond);
+  webServer.begin();
+
+  ticker.attach(1, checkHumidity);
+
+  Serial.printf("\nBooted %s\n", id);
+  led.begin(ledState);
+}
+
+void loop( void ) {
+  dnsServer.processNextRequest();
+  webServer.handleClient();
 }
