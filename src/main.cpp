@@ -6,7 +6,7 @@
 #include <Ticker.h>
 
 #define PROGRAM "Moisture"
-#define VERSION "1.1"
+#define VERSION "1.2"
 
 #define A0_WET 875
 #define A0_DRY 445
@@ -70,9 +70,11 @@ void checkHumidity( void ) {
 
 // Standard response for any http request: send current humidity
 void respond() {
+  led.set(ledState == Led::ON ? Led::OFF : Led::ON);
   int humidity = getHumidityPercent();
   snprintf(msg, sizeof(msg), msgTemplate, id, humidity);
   webServer.send(200, "text/html", msg);
+  led.set(ledState);
 }
 
 // Start wifi AP with captive dns portal and webserver, serial out ticker and alarm led
