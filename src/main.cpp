@@ -3,10 +3,11 @@
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include <Ticker.h>
 
 #define PROGRAM "Moisture"
-#define VERSION "1.2"
+#define VERSION "1.3"
 
 #define A0_WET 875
 #define A0_DRY 445
@@ -90,6 +91,9 @@ void setup(void) {
 
   webServer.onNotFound(respond);
   webServer.begin();
+
+  MDNS.begin(PROGRAM);
+  MDNS.addService("http", "tcp", 80);
 
   ticker.attach(1, checkHumidity);
 
