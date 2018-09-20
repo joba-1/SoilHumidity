@@ -7,11 +7,12 @@
 #include <Ticker.h>
 
 #define PROGRAM "Moisture"
-#define VERSION "1.3"
+#define VERSION "1.4"
 
 #define A0_WET 875
 #define A0_DRY 445
 
+#define PERCENT_DRY_LED_BLINK  20
 #define PERCENT_DRY_LED_ON  25
 #define PERCENT_WET_LED_OFF 30
 
@@ -59,14 +60,17 @@ void checkHumidity( void ) {
 
   Serial.printf("Humidity: %d%%\n", humidity);
 
-  if( humidity < PERCENT_DRY_LED_ON ) {
-    ledState = Led::ON;   // Time to give plants some water
+  if( humidity < PERCENT_DRY_LED_BLINK ) {
+    ledState = (ledState == Led::ON) ? Led::OFF : Led::ON;   // Urgent to give plants some water
+  }
+  else if( humidity < PERCENT_DRY_LED_ON ) {
+    ledState = Led::ON;   // Hint to give plants some water
   }
   else if( humidity > PERCENT_WET_LED_OFF ) {
     ledState = Led::OFF;  // Soil is moist
   }
 
-  led.set(ledState); // Set always, because Serial might mess with it
+  led.set(ledState); // Set always, because Serial or webserver might mess with it
 }
 
 // Standard response for any http request: send current humidity
