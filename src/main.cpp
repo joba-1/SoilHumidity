@@ -12,9 +12,9 @@
 #define A0_WET 875
 #define A0_DRY 445
 
-#define PERCENT_DRY_LED_BLINK  20
-#define PERCENT_DRY_LED_ON  25
-#define PERCENT_WET_LED_OFF 30
+#define PERCENT_DRY_LED_BLINK  25
+#define PERCENT_DRY_LED_ON  30
+#define PERCENT_WET_LED_OFF 35
 
 template < bool Inverted > class TLed {
 public:
