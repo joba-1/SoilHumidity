@@ -7,14 +7,14 @@
 #include <Ticker.h>
 
 #define PROGRAM "Moisture"
-#define VERSION "1.4"
+#define VERSION "1.5"
 
 #define A0_WET 875
 #define A0_DRY 445
 
-#define PERCENT_DRY_LED_BLINK  25
-#define PERCENT_DRY_LED_ON  30
-#define PERCENT_WET_LED_OFF 35
+#define PERCENT_DRY_LED_BLINK  30
+#define PERCENT_DRY_LED_ON  35
+#define PERCENT_WET_LED_OFF 40
 
 template < bool Inverted > class TLed {
 public:
