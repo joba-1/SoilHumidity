@@ -7,7 +7,7 @@
 #include <Ticker.h>
 
 #define PROGRAM "Moisture"
-#define VERSION "1.5"
+#define VERSION "1.6"
 
 #define A0_WET 875
 #define A0_DRY 445
@@ -45,20 +45,20 @@ Ticker ticker;
 
 const char msgTemplate[] = "<!DOCTYPE html><html><head><title>%s</title>"
                            "<meta http-equiv=\"refresh\" content=\"10\"></head>"
-                           "<body><h1>Humidity: %d%%</h1></body></html>";
+                           "<body><h1>Humidity: %0.1f%%</h1></body></html>";
 char id[sizeof(PROGRAM " " VERSION " hhhhhhhh")];
 char msg[sizeof(msgTemplate) + sizeof(id)];
 
 // Return the current humidity value in percent
-int getHumidityPercent() {
-  return map(constrain( analogRead(A0), A0_DRY, A0_WET ), A0_WET, A0_DRY, 0, 100);
+float getHumidityPercent() {
+  return map(constrain( analogRead(A0), A0_DRY, A0_WET ), A0_WET, A0_DRY, 0, 1000) / 10.0;
 }
 
 // Print humidity to serial and set led on if too dry or off if wet enough
 void checkHumidity( void ) {
-  int humidity = getHumidityPercent();
+  float humidity = getHumidityPercent();
 
-  Serial.printf("Humidity: %d%%\n", humidity);
+  Serial.printf("Humidity: %0.1f%%\n", humidity);
 
   if( humidity < PERCENT_DRY_LED_BLINK ) {
     ledState = (ledState == Led::ON) ? Led::OFF : Led::ON;   // Urgent to give plants some water
@@ -76,7 +76,7 @@ void checkHumidity( void ) {
 // Standard response for any http request: send current humidity
 void respond() {
   led.set(ledState == Led::ON ? Led::OFF : Led::ON);
-  int humidity = getHumidityPercent();
+  float humidity = getHumidityPercent();
   snprintf(msg, sizeof(msg), msgTemplate, id, humidity);
   webServer.send(200, "text/html", msg);
   led.set(ledState);
@@ -91,12 +91,13 @@ void setup(void) {
   snprintf(id, sizeof(id), "%s %s %06x", PROGRAM, VERSION, ESP.getChipId());
   WiFi.softAP(id);
 
+  MDNS.begin(PROGRAM);
+
   dnsServer.start(53, "*", apAddr);
+  MDNS.addService("dns", "udp", 53);
 
   webServer.onNotFound(respond);
   webServer.begin();
-
-  MDNS.begin(PROGRAM);
   MDNS.addService("http", "tcp", 80);
 
   ticker.attach(1, checkHumidity);
